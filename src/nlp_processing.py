@@ -16,11 +16,12 @@ import pandas as pd
 import numpy as np
 import re
 import nltk
+import spacy
 nltk.download('punkt_tab')
-spacy.download("en_core_web_sm")
+# from gensim.models import Doc2Vec
+# from gensim.models.doc2vec import TaggedDocument
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-import spacy
 from spacy.matcher import PhraseMatcher
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -126,7 +127,7 @@ text_cleaned
 
 #Load the ingredients.txt and load them into a list
 def load_ingredients_list():
-    with open("ingredients.txt", "r") as file:
+    with open("./dataset/ingredients.txt", "r") as file:
         ingredients_list = file.read().split(', ')
         file.close()
     return ingredients_list
@@ -191,9 +192,10 @@ print("Detected Ingredient:", ingredient_name)
 # In[12]:
 
 
+
 #Use TFIDF to vectorize the dataset's ingredients list
 def perform_tfidf(ingredients_dataset):
-    tfidf = TfidfVectorizer(lowercase = True, analyzer = "word", ngram_range = (1,1))
+    tfidf = TfidfVectorizer(lowercase = True, analyzer = "word", ngram_range = (1,1), norm = 'l1')
     df_vector= tfidf.fit_transform(ingredients_dataset)
     return tfidf, df_vector
 
@@ -276,3 +278,54 @@ print(top_5)
 #     similarity = glove_model.similarity(pair[0], pair[1])
 # print(similarity)
 
+
+
+# #doc2vec
+# # define a list of documents.
+# data = ["This is the first document",
+#         "This is the second document",
+#         "This is the third document",
+#         "This is the fourth document"]
+
+# #Transform the dataframe's ingredients list into documents
+# df_doc = []
+# for i, doc in enumerate(df_food["ingredients"]):
+#     #Clean the text by tokenizing and lowercase
+#     tokenized = word_tokenize(doc.lower())
+#     tags = [str(i)]
+#     doc = TaggedDocument(tokenized, tags)
+#     df_doc.append(doc)
+
+# #Train the Doc2vec model
+# model = Doc2Vec(vector_size = 20, min_count = 2, epochs = 50)
+# model.build_vocab(df_doc)
+# model.train(df_doc, total_examples = model.corpus_count, epochs = model.epochs)
+
+# #Get the document vectors
+# df_vector = [model.infer_vector(
+#     word_tokenize(doc.lower())) for doc in df_food["ingredients"]]
+# user_ingredients = ["gravy, pea, potato, steak"]
+# user_vector = [model.infer_vector(
+#     word_tokenize(doc.lower())) for doc in user_ingredients]
+
+
+# #Use cosine similarity to compare the vectors
+# def perform_cosine_similarity(user_vector, df_vector):
+#     similarity = cosine_similarity(user_vector, df_vector).flatten()
+    
+#     #Get the top 5 matching recipies
+#     top_5 = np.argsort(similarity)[::-1][:5] #sort by descending and get the first 5
+#     return top_5
+
+
+# top_5 = perform_cosine_similarity(user_vector, df_vector)
+# top_5 = df_food["name"][top_5]
+# print(top_5)
+
+
+
+# #  print the document vectors
+# for i, doc in enumerate(df_food["ingredients"]):
+#     print("Document", i+1, ":", doc)
+#     print("Vector:", document_vectors[i])
+#     print()
