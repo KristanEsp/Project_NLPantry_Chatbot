@@ -10,6 +10,8 @@ from nltk.corpus import wordnet as wn
 from nltk.translate.bleu_score import sentence_bleu
 import spacy
 import streamlit as st
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -187,7 +189,7 @@ class DialoguePolicy:
         self.user_input = ""
         self.chatbot_output = ""
         #Import the food dataset
-        self.df_food = pd.read_csv("./dataset/Recipe_Dataset.csv")
+        self.df_food = pd.read_csv(os.path.join(BASE_DIR, "dataset", "Recipe_Dataset.csv"))
 
     def print_welcome_message(self):
         self.chatbot_output = f'I am NLPantry a chatbot that can recommend you some recipes by giving me a list of ingredients.  \n'

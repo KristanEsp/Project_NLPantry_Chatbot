@@ -25,13 +25,17 @@ from nltk.corpus import stopwords
 from spacy.matcher import PhraseMatcher
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+import warnings
+warnings.filterwarnings('ignore')
 
 
 # In[2]:
 
 
 #Import the food dataset
-df_food = pd.read_csv("./dataset/Recipe_Dataset.csv")
+df_food = pd.read_csv(os.path.join(BASE_DIR, "dataset", "Recipe_Dataset.csv"))
 df_food.tail(10)
 
 
@@ -127,7 +131,7 @@ text_cleaned
 
 #Load the ingredients.txt and load them into a list
 def load_ingredients_list():
-    with open("./dataset/ingredients.txt", "r") as file:
+    with open(os.path.join(BASE_DIR, "dataset", "ingredients.txt"), "r") as file:
         ingredients_list = file.read().split(', ')
         file.close()
     return ingredients_list
