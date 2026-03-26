@@ -19,6 +19,8 @@ import nltk
 import spacy
 nltk.download('punkt_tab')
 nltk.download('stopwords')
+nltk.download("wordnet")
+nltk.download("omw-1.4")
 # from gensim.models import Doc2Vec
 # from gensim.models.doc2vec import TaggedDocument
 from nltk.tokenize import word_tokenize
