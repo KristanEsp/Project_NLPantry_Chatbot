@@ -18,6 +18,7 @@ import re
 import nltk
 import spacy
 nltk.download('punkt_tab')
+nltk.download('stopwords')
 # from gensim.models import Doc2Vec
 # from gensim.models.doc2vec import TaggedDocument
 from nltk.tokenize import word_tokenize

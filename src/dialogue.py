@@ -4,11 +4,9 @@ import re
 import nltk
 nltk.download('punkt_tab')
 from nltk import pos_tag
-from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.corpus import wordnet as wn
 from nltk.translate.bleu_score import sentence_bleu
-import spacy
 import streamlit as st
 import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
