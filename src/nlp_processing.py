@@ -17,14 +17,13 @@ import numpy as np
 import re
 import nltk
 import spacy
+#from gensim.models.doc2vec import TaggedDocument, Doc2Vec
 nltk.download('punkt_tab')
 nltk.download('stopwords')
 nltk.download("wordnet")
 nltk.download("omw-1.4")
 nltk.download("averaged_perceptron_tagger")
 nltk.download("averaged_perceptron_tagger_eng")
-# from gensim.models import Doc2Vec
-# from gensim.models.doc2vec import TaggedDocument
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from spacy.matcher import PhraseMatcher
@@ -203,12 +202,12 @@ print("Detected Ingredient:", ingredient_name)
 
 
 #Use TFIDF to vectorize the dataset's ingredients list
-def perform_tfidf(ingredients_dataset):
-    tfidf = TfidfVectorizer(lowercase = True, analyzer = "word", ngram_range = (1,1), norm = 'l1')
-    df_vector= tfidf.fit_transform(ingredients_dataset)
+def perform_tfidf(ingredients_dataset, ingredients_list):
+    tfidf = TfidfVectorizer(lowercase = True, vocabulary = ingredients_list, min_df = 1)
+    df_vector = tfidf.fit_transform(ingredients_dataset)
     return tfidf, df_vector
 
-df_tfidf, df_vector = perform_tfidf(df_food["ingredients"])
+df_tfidf, df_vector = perform_tfidf(df_food["ingredients"], ingredients_list)
 feature_names = df_tfidf.get_feature_names_out()
 feature_names[-10:]
 
@@ -219,16 +218,27 @@ feature_names[-10:]
 #Use cosine similarity to compare the vectors
 def perform_cosine_similarity(df_tfidf, df_vector, user_ingredients):
     user_vector = df_tfidf.transform(user_ingredients)
+
+    # max_tfidf = df_vector.max(axis = 0).toarray().flatten()
+    # #Choose a threshold
+    # threshold = 0.2
+    # #Keep only important ingredients
+    # important_indices = np.where(max_tfidf > threshold)[0]
+
+    # df_vector_filtered = df_vector[:, important_indices]
+    # user_vector_filtered = user_vector[:, important_indices]
+
+
     similarity = cosine_similarity(user_vector, df_vector).flatten()
     
-    #Get the top 5 matching recipies
-    top_5 = np.argsort(similarity)[::-1][:5] #sort by descending and get the first 5
-    return top_5
+    #Sort the recipe based on cosine similarity score
+    sorted_recipe = np.argsort(similarity)[::-1] #sort by descending
+    return sorted_recipe
 
-user_ingredients = ["chicken, gravy, pea, potato"]
-top_5 = perform_cosine_similarity(df_tfidf, df_vector, user_ingredients)
-top_5 = df_food["name"][top_5]
-print(top_5)
+# user_ingredients = ["chicken, gravy, pea, potato"]
+# top_5 = perform_cosine_similarity(df_tfidf, df_vector, user_ingredients)
+# top_5 = df_food["name"][top_5]
+# print(top_5)
 
 
 # In[14]:
@@ -298,6 +308,7 @@ print(top_5)
 
 # #Transform the dataframe's ingredients list into documents
 # df_doc = []
+# tokenized = []
 # for i, doc in enumerate(df_food["ingredients"]):
 #     #Clean the text by tokenizing and lowercase
 #     tokenized = word_tokenize(doc.lower())
@@ -306,7 +317,7 @@ print(top_5)
 #     df_doc.append(doc)
 
 # #Train the Doc2vec model
-# model = Doc2Vec(vector_size = 20, min_count = 2, epochs = 50)
+# model = Doc2Vec(vector_size = 150, window = 5, min_count = 5, epochs = 100)
 # model.build_vocab(df_doc)
 # model.train(df_doc, total_examples = model.corpus_count, epochs = model.epochs)
 

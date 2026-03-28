@@ -101,6 +101,21 @@ def convert_words2number(token):
     }
     return words_to_nums.get(token)
 
+def convert_time_to_minutes(input):
+    #Extract any time related info
+    minutes = 0
+    regex_pattern = r"(\d+)\s*(h|hour|m|min|minute|)"
+    matches = re.findall(regex_pattern, input, re.IGNORECASE)
+    #Convert hours into minutes
+    for time, unit in matches:
+        time = int(time) #The number
+        unit = unit.lower() #Hour/Minute
+        if unit.startswith('h'):
+            minutes += time * 60
+        else:
+            minutes += time
+    return minutes
+
 
 # In[28]:
 
@@ -132,6 +147,28 @@ def get_bleu_score(self, tokens):
 
 
 # In[29]:
+
+
+def filter_by_time(self, sorted_recipe):
+    #Filter based on the prep time
+    if self.cook_time <= 15:
+        #1-15 minute recipes
+        prep_time_filter = self.df_food["cook_time"] == "15"
+    elif self.cook_time > 15 and self.cook_time <= 30:
+            #16-30 minute recipes
+        prep_time_filter = self.df_food["cook_time"] == "30"
+    elif self.cook_time > 30 and self.cook_time <= 60:
+            #31-60 minute recipes
+        prep_time_filter = self.df_food["cook_time"] == "60"
+    else:
+        #60+ minute recipes
+        prep_time_filter = self.df_food["cook_time"] == "60+"
+    
+    
+
+    #prep_time_filter = self.df_food["tags"].str.contains(r"15-minutes-or-less", regex = True, na = False)
+    time_filtered_recipe = sorted_recipe[sorted_recipe[prep_time_filter].index]
+    return time_filtered_recipe
 
 
 #
@@ -181,6 +218,7 @@ def print_info(self, info, pattern):
 class DialoguePolicy:
     def __init__(self):
         self.ingredients_list = []
+        self.cook_time = 0
         self.top5_recipe = []
         self.chosen_recipe_index = 0
         self.current_stage = "welcome_stage"
@@ -190,7 +228,7 @@ class DialoguePolicy:
         self.df_food = pd.read_csv(os.path.join(BASE_DIR, "dataset", "Recipe_Dataset.csv"))
 
     def print_welcome_message(self):
-        self.chatbot_output = f'I am NLPantry a chatbot that can recommend you some recipes by giving me a list of ingredients.  \n'
+        self.chatbot_output = f'I am NLPantry a chatbot that can recommend you some recipes based on the ingredients you give me.  \n'
         self.chatbot_output += f'• Start by adding any ingredients you have, one by one.  \n'
         self.chatbot_output += f'• You can also "remove" ingredients from the list or "clear" the entire list  \n'
         self.chatbot_output += f'• Let me know once you are done collecting your ingredients list  \n'
@@ -202,7 +240,7 @@ class DialoguePolicy:
         st.session_state.messages.append({"role": "assistant", "content": self.chatbot_output})
         st.rerun()
 
-    ####################3 main stages: ingredients collection, recipe choosing, recipe output
+    ####################4 main stages: ingredients collection, get cook time, recipe choosing, recipe output
     ############### Step 1.) Ingredients Collection Stage
     def choose_ingredient_stage(self, input):
         status = ""
@@ -216,13 +254,15 @@ class DialoguePolicy:
         commands = ["done", "finished"]
         status = check_similar_commands(tokens, commands)
 
-        #Move on to the choosing recipe stage after finishing adding ingredients
+        #Move on to the get cook time stage after finishing adding ingredients
         if status == "done":
             #Check if ingredients list is not empty before moving to next stage
             if len(self.ingredients_list) != 0:
                 self.ingredients_list = [", ".join(self.ingredients_list)]
-                self.current_stage = "choose_recipe_stage"
-                self.match_recipe()
+                self.current_stage = "get_cook_time"
+                self.chatbot_output = "How much time do you have?"
+                display_streamlit_chat(self.user_input, self.chatbot_output)
+                st.rerun()
             else:
                 self.chatbot_output = "Your ingredients list is empty. You must add some ingredients before proceeding"
                 return
@@ -276,17 +316,37 @@ class DialoguePolicy:
                 i += 1
         
 
-        
-    ############### Step 2.) Choosing Recipe Stage
+    ############### Step 2.) Obtain cook time
+    def get_cook_time_stage(self, input):
+        #Extract time number information from input  e.g. 1 hour and 30 minutes
+        self.user_input = input
+        self.cook_time = convert_time_to_minutes(self.user_input)
+        #Check if user's time input is valid
+        if self.cook_time > 0:
+            #move on to next stage
+            self.current_stage = "choose_recipe_stage"
+            self.match_recipe()
+        else:
+            self.chatbot_output = f'Invalid cook time. Please put your time using numbers (e.g. 1 hour and 30 minutes) \n'
+            return
+
+    
+    ############### Step 3.) Choosing Recipe Stage
     #Match Recipe via cosine similarity
     def match_recipe(self):
         #Process the ingredients list and the dataset - tfidf
-        df_tfidf, df_vector = perform_tfidf(self.df_food["ingredients"])
+        all_ingredients_list = load_ingredients_list()
+        df_tfidf, df_vector = perform_tfidf(self.df_food["ingredients"], all_ingredients_list)
         #Apply Cosine similarity to get top 5 matching recipes
-        self.top5_recipe = perform_cosine_similarity(df_tfidf, df_vector, self.ingredients_list)
-        self.top5_recipe = self.df_food["name"][self.top5_recipe]
+        cosine_sorted_recipe = perform_cosine_similarity(df_tfidf, df_vector, self.ingredients_list)
+        cosine_sorted_recipe = self.df_food["name"][cosine_sorted_recipe]
+        #Filter recipes based on given time
+        time_filtered_recipe = filter_by_time(self, cosine_sorted_recipe)
+        #Get the top5 recipe
+        self.top5_recipe = time_filtered_recipe[:5]
+        print(self.top5_recipe)
 
-        #Show the user the recommended recipe list
+        #Show the user the recommended recipe list names
         self.chatbot_output = "Here are some matching recipes I have found for you:  \n"
         for i,recipe in enumerate(self.top5_recipe):
             self.chatbot_output  += f'{i + 1}.) {recipe}  \n'
@@ -300,7 +360,8 @@ class DialoguePolicy:
         #response = input("Which recipe would you like to see?:")
 
         #Clean the response
-        response_cleaned = text_preprocessing(input)
+        self.user_input = input
+        response_cleaned = text_preprocessing(self.user_input)
         response_cleaned = word_tokenize(response_cleaned)
         self.chosen_recipe_index = check_recipe_response(response_cleaned, self)
         #Check if the response is valid
@@ -319,6 +380,8 @@ class DialoguePolicy:
         #Print the recipe name
         self.chatbot_output  += f'Here is the recipe for {self.df_food["name"].iloc[self.chosen_recipe_index]}:  \n'
         ###############################print(f'Here is the recipe for {self.df_food["name"].iloc[self.chosen_recipe_index]}:')
+        #Print the cook time
+        self.chatbot_output  += f'  \n Time: ~{self.df_food["cook_time"].iloc[self.chosen_recipe_index]} minutes  \n'
         #Print the ingredients list
         ################################print("Ingredients: ")
         self.chatbot_output  += f'  \n Ingredients:  \n'

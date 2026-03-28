@@ -40,6 +40,8 @@ if prompt:
         dialogue.choose_ingredient_stage(prompt)
     if dialogue.current_stage == "choose_recipe_stage":
         dialogue.choose_recipe_stage(prompt)
+    if dialogue.current_stage == "get_cook_time":
+        dialogue.get_cook_time_stage(prompt)
     if dialogue.current_stage == "show_recipe_stage":
         dialogue.print_recipe_stage(prompt)
     if dialogue.current_stage == "end_stage":
