@@ -13,17 +13,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 import warnings
 warnings.filterwarnings('ignore')
 
-
-# In[3]:
-
-
 #Import functions from other notebook
 from nlp_processing import text_preprocessing, nlp_processing, load_ingredients_list, tag_ingredients, identify_ingredients, perform_tfidf, perform_cosine_similarity
-
-
-# In[13]:
-
-
 
 
 def display_streamlit_chat(prompt, response):
@@ -48,12 +39,8 @@ def check_valid_ingredients(self, ingredient, ingredients_list):
     elif ingredient in ingredients_list:
         self.chatbot_output = f'You have already added: {ingredient}'
         return False
-        #print("You have already added:", ingredient)
     else:
         return True
-
-
-# In[14]:
 
 
 #Lemmatized verbs or commands e.g.:finished->finish
@@ -63,13 +50,10 @@ def lemmatized_verbs(token):
     for word,tag in pos_tag(token):
         #Check if the token/word has a POS verb tag
         if tag[0] == "V" and word != "done":
-             text_lemmatized.append(wn.lemmatize(word, tag[0].lower())) #Use the "v" tag to indicate that its a verb
+             text_lemmatized.append(wn.lemmatize(word, tag[0].lower())) #Uses the "v" tag to indicate that its a verb
         else:
             text_lemmatized.append(wn.lemmatize(word))
     return text_lemmatized
-
-
-# In[15]:
 
 
 #Check if a token is synonymous/matches a specific command such as "finished" or "done"
@@ -91,15 +75,13 @@ def check_similar_commands(tokens, commands):
             return
 
 
-# In[16]:
-
-
 def convert_words2number(token):
     words_to_nums = {
         "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
         "five": "5", "first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5"
     }
     return words_to_nums.get(token)
+
 
 def convert_time_to_minutes(input):
     #Extract any time related info
@@ -115,9 +97,6 @@ def convert_time_to_minutes(input):
         else:
             minutes += time
     return minutes
-
-
-# In[28]:
 
 
 #using Bleu score to match the recipe name given by the user to one of the top 5 recipe list
@@ -146,9 +125,6 @@ def get_bleu_score(self, tokens):
         return chosen_index
 
 
-# In[29]:
-
-
 def filter_by_time(self, sorted_recipe):
     #Filter based on the prep time
     if self.cook_time <= 15:
@@ -163,15 +139,10 @@ def filter_by_time(self, sorted_recipe):
     else:
         #60+ minute recipes
         prep_time_filter = self.df_food["cook_time"] == "60+"
-    
-    
-
-    #prep_time_filter = self.df_food["tags"].str.contains(r"15-minutes-or-less", regex = True, na = False)
     time_filtered_recipe = sorted_recipe[sorted_recipe[prep_time_filter].index]
     return time_filtered_recipe
 
 
-#
 def check_recipe_response(tokens, self):
     #First, check if user used numbers/digit to pick a recipe from the list
     for token in tokens:
@@ -191,9 +162,6 @@ def check_recipe_response(tokens, self):
     return chosen_index
 
 
-# In[167]:
-
-
 def print_info(self, info, pattern):
     #Remove punctuations except for comma
     punctuations_with_comma = r'[\[\]]'
@@ -207,11 +175,8 @@ def print_info(self, info, pattern):
         if len(info) == 0:
             continue
         self.chatbot_output += f"{i+1}.) {info}  \n"
-        ############# print(f"{i+1}.) {info}")
         i += 1
 
-
-# In[168]:
 
 
 #Dialogue Policy
@@ -344,7 +309,6 @@ class DialoguePolicy:
         time_filtered_recipe = filter_by_time(self, cosine_sorted_recipe)
         #Get the top5 recipe
         self.top5_recipe = time_filtered_recipe[:5]
-        print(self.top5_recipe)
 
         #Show the user the recommended recipe list names
         self.chatbot_output = "Here are some matching recipes I have found for you:  \n"
@@ -370,36 +334,31 @@ class DialoguePolicy:
             self.current_stage = "show_recipe_stage"
             return
         else:
-            #print("I have not detected a matching recipe. Please try again")
             self.chatbot_output = "I have not detected a matching recipe. Please try again"
 
-    ############### Step 3.) Print chosen recipe
+    ############### Step 4.) Print chosen recipe
     def print_recipe_stage(self, input):
         self.user_input = input
         self.chatbot_output = ""
         #Print the recipe name
         self.chatbot_output  += f'Here is the recipe for {self.df_food["name"].iloc[self.chosen_recipe_index]}:  \n'
-        ###############################print(f'Here is the recipe for {self.df_food["name"].iloc[self.chosen_recipe_index]}:')
         #Print the cook time
         self.chatbot_output  += f'  \n Time: ~{self.df_food["cook_time"].iloc[self.chosen_recipe_index]} minutes  \n'
         #Print the ingredients list
-        ################################print("Ingredients: ")
         self.chatbot_output  += f'  \n Ingredients:  \n'
         split_pattern = '","'
         print_info(self, self.df_food["ingredients_raw_str"].iloc[self.chosen_recipe_index], split_pattern)
         #Print the Step Instructions
         self.chatbot_output  += f'  \n Instructions:  \n'
-        ###############################print("Instructions: ")
         split_pattern = "', '"
         print_info(self, self.df_food["steps"].iloc[self.chosen_recipe_index], split_pattern)
-
 
         #Ask user to either pick another recipe or redo their ingredients list 
         self.chatbot_output += f' \n Would you like to edit your "ingredients" list or pick another "recipe" \n' 
         self.current_stage = "end_stage"
         display_streamlit_chat(self.user_input, self.chatbot_output)
         st.rerun()
-        #response = input("Would you like to edit your 'ingredients' list or pick another 'recipe'")
+
 
     
         ############### Step 4.) Option to pick another recipe or redo their ingredients list
