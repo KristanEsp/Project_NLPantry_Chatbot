@@ -105,7 +105,7 @@ def get_bleu_score(self, tokens):
     #Get the index positions of the top 5 recipes
     index = self.top5_recipe.index
     chosen_index = 0
-    #Calculate the bleu score for each recipe list
+    #Get the recipe with the highest bleu score
     bleu_score = 0
     for i, recipe in enumerate(self.top5_recipe):
         #Perform text cleaning on recipe name
@@ -131,10 +131,10 @@ def filter_by_time(self, sorted_recipe):
         #1-15 minute recipes
         prep_time_filter = self.df_food["cook_time"] == "15"
     elif self.cook_time > 15 and self.cook_time <= 30:
-            #16-30 minute recipes
+        #16-30 minute recipes
         prep_time_filter = self.df_food["cook_time"] == "30"
     elif self.cook_time > 30 and self.cook_time <= 60:
-            #31-60 minute recipes
+        #31-60 minute recipes
         prep_time_filter = self.df_food["cook_time"] == "60"
     else:
         #60+ minute recipes
@@ -205,7 +205,7 @@ class DialoguePolicy:
         st.session_state.messages.append({"role": "assistant", "content": self.chatbot_output})
         st.rerun()
 
-    ####################4 main stages: ingredients collection, get cook time, recipe choosing, recipe output
+    ####################5 main stages: ingredients collection, get cook time, recipe matching, recipe choosing, recipe output
     ############### Step 1.) Ingredients Collection Stage
     def choose_ingredient_stage(self, input):
         status = ""
@@ -296,8 +296,7 @@ class DialoguePolicy:
             return
 
     
-    ############### Step 3.) Choosing Recipe Stage
-    #Match Recipe via cosine similarity
+    ############### Step 3.) Matching Recipe Stage (via cosine similarity)
     def match_recipe(self):
         #Process the ingredients list and the dataset - tfidf
         all_ingredients_list = load_ingredients_list()
@@ -317,12 +316,10 @@ class DialoguePolicy:
         self.chatbot_output += "  \n Which recipe would you like to see?"
         display_streamlit_chat(self.user_input, self.chatbot_output)
         st.rerun()
-        
-    def choose_recipe_stage(self, input):
-        #Ask user to pick their preferred recipe from list
-        #Get user response
-        #response = input("Which recipe would you like to see?:")
+    
 
+    ############### Step 4.) Choosing Recipe Stage
+    def choose_recipe_stage(self, input):
         #Clean the response
         self.user_input = input
         response_cleaned = text_preprocessing(self.user_input)
@@ -336,7 +333,8 @@ class DialoguePolicy:
         else:
             self.chatbot_output = "I have not detected a matching recipe. Please try again"
 
-    ############### Step 4.) Print chosen recipe
+
+    ############### Step 5.) Print chosen recipe
     def print_recipe_stage(self, input):
         self.user_input = input
         self.chatbot_output = ""
@@ -359,9 +357,8 @@ class DialoguePolicy:
         display_streamlit_chat(self.user_input, self.chatbot_output)
         st.rerun()
 
-
     
-        ############### Step 4.) Option to pick another recipe or redo their ingredients list
+    ############### Loop back to either choosing recipe stage or ingredients collection stage
     def end_stage(self, input):
         self.user_input = input
         #Clean the response 

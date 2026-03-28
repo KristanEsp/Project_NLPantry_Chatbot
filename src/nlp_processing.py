@@ -84,7 +84,6 @@ text_cleaned
 
 
 
-
 # ## Named Entity Recognition for ingredients
 # - The default Spacy model does not recognize food items or ingredients
 # - So ingredient names must be added to the model
